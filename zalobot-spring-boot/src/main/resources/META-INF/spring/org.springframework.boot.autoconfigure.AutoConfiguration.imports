@@ -1,0 +1,2 @@
+dev.linhvu.zalobot.boot.autoconfigure.ZaloBotClientAutoConfiguration
+dev.linhvu.zalobot.boot.autoconfigure.ZaloBotListenerAutoConfiguration
