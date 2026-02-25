@@ -8,6 +8,9 @@ import java.time.Duration;
  * <p>The interval starts at the initial value and multiplies by the given factor
  * (default 2.0) on each call to {@link #nextBackOffMillis()}, up to the
  * configured maximum. Call {@link #reset()} to restart from the initial interval.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public class ExponentialBackOff {
 

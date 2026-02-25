@@ -52,7 +52,6 @@ class ZaloUpdateListenerContainerTests {
 	private ContainerProperties fastProperties() {
 		ContainerProperties props = new ContainerProperties();
 		props.setPollTimeout(Duration.ofMillis(50));
-		props.setPollInterval(Duration.ofMillis(10));
 		props.setShutdownTimeout(Duration.ofSeconds(2));
 		props.setBackOffInterval(Duration.ofMillis(50));
 		props.setMaxBackOffInterval(Duration.ofMillis(200));

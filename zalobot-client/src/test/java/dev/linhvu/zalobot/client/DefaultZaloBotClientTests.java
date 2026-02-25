@@ -266,24 +266,6 @@ class DefaultZaloBotClientTests {
 	}
 
 	@Test
-	void retrieve_call_throwsApiExceptionOnNonAuthError() throws Exception {
-		String json = """
-				{"ok":false,"result":null,"error_code":-100}""";
-		MockTransport transport = mockTransport(json, 400);
-		ZaloBotClient client = buildClient("token", transport.factory());
-
-		assertThatThrownBy(() -> client.getMe().retrieve().call(GetMeResult.class))
-				.isInstanceOf(ZaloBotApiException.class)
-				.isNotInstanceOf(ZaloBotAuthenticationException.class)
-				.satisfies(ex -> {
-					ZaloBotApiException apiEx = (ZaloBotApiException) ex;
-					assertThat(apiEx.getRawErrorCode()).isEqualTo(-100);
-					assertThat(apiEx.getHttpStatus()).isEqualTo(400);
-					assertThat(apiEx.getErrorCode()).isEqualTo(ZaloErrorCode.INVALID_PARAMETER);
-				});
-	}
-
-	@Test
 	void exchange_ioExceptionOnExecute_throwsZaloBotClientException() throws Exception {
 		ClientHttpRequestFactory factory = mock(ClientHttpRequestFactory.class);
 		ClientHttpRequest request = mock(ClientHttpRequest.class);

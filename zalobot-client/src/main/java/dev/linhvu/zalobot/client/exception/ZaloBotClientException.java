@@ -6,6 +6,9 @@ package dev.linhvu.zalobot.client.exception;
  *
  * <p>This covers network failures, connection timeouts, malformed URIs,
  * and other I/O-related errors that are not API-level errors.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public class ZaloBotClientException extends ZaloBotException {
 

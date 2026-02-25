@@ -9,6 +9,8 @@ import java.net.URI;
  * The SDK includes implementations for JDK {@code HttpClient} and OkHttp3.
  *
  * @see dev.linhvu.zalobot.client.http.jdk.JdkClientHttpRequestFactory
+ * @author Linh Vu
+ * @since 0.0.1
  * @see dev.linhvu.zalobot.client.http.okhhtp3.OkClientHttpRequestFactory
  */
 @FunctionalInterface

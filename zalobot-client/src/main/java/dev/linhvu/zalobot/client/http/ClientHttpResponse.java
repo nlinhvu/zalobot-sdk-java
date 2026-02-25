@@ -10,6 +10,8 @@ import java.io.InputStream;
  * <p>Implements {@link Closeable} to ensure the underlying connection
  * resources are released after the response is consumed.
  *
+ * @author Linh Vu
+ * @since 0.0.1
  * @see ClientHttpRequest#execute()
  */
 public interface ClientHttpResponse extends Closeable {

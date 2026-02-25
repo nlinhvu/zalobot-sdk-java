@@ -9,6 +9,9 @@ import okhttp3.ResponseBody;
 
 /**
  * {@link ClientHttpResponse} implementation that wraps an OkHttp3 {@link Response}.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public class OkClientHttpResponse implements ClientHttpResponse {
 

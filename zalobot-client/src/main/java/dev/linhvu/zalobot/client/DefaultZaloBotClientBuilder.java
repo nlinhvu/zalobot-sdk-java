@@ -93,11 +93,11 @@ final class DefaultZaloBotClientBuilder implements ZaloBotClient.Builder {
 		if (this.requestFactory != null) {
 			return this.requestFactory;
 		}
-		if (OKHTTP3_CLIENT_PRESENT) {
-			return OkHttpClientFactoryHelper.create();
-		}
 		if (JDK_CLIENT_PRESENT) {
 			return new JdkClientHttpRequestFactory();
+		}
+		if (OKHTTP3_CLIENT_PRESENT) {
+			return OkHttpClientFactoryHelper.create();
 		}
 		throw new IllegalStateException(
 				"No suitable HTTP client found. Add OkHttp or use JDK 11+ HttpClient.");

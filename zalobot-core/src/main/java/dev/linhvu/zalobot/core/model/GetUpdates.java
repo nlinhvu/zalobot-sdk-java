@@ -12,6 +12,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *                connection open for up to this duration before returning an
  *                empty response if no updates are available. May be {@code null}
  *                for immediate (non-blocking) polling.
+ * @author Linh Vu
+ * @since 0.0.1
  * @see GetUpdatesResult
  */
 public record GetUpdates(

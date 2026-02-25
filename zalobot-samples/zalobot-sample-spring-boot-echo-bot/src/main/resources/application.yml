@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: zalobot-sample-spring-boot-echo-bot
+
+zalobot:
+  bot-token: ${ZALO_BOT_TOKEN}
+  listener:
+    poll-timeout: 30s
+
+logging:
+  level:
+    dev.linhvu.zalobot: TRACE

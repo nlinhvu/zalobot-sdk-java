@@ -6,8 +6,11 @@ package dev.linhvu.zalobot.client.exception;
  * <p>Contains detailed error information including the HTTP status code,
  * the Zalo-specific error code, and a human-readable description.
  *
+ * @author Linh Vu
+ * @since 0.0.1
  * @see ZaloErrorCode
  * @see ZaloBotAuthenticationException
+ * @see ZaloBotRequestTimeoutException
  */
 public class ZaloBotApiException extends ZaloBotException {
 

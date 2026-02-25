@@ -10,6 +10,9 @@ import java.util.concurrent.locks.ReentrantLock;
  * <p>Provides thread-safe lifecycle management (start/stop/pause/resume) using
  * a {@link ReentrantLock}. Subclasses implement the actual start and stop
  * logic via {@link #doStart()} and {@link #doStop(Runnable)}.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public abstract class AbstractUpdateListenerContainer implements UpdateListenerContainer {
 
@@ -18,6 +21,11 @@ public abstract class AbstractUpdateListenerContainer implements UpdateListenerC
 	private volatile boolean running = false;
 	private volatile boolean paused = false;
 
+	/**
+	 * Creates a new container with the given properties.
+	 * @param containerProperties the container configuration (must not be {@code null})
+	 * @throws IllegalArgumentException if {@code containerProperties} is {@code null}
+	 */
 	protected AbstractUpdateListenerContainer(ContainerProperties containerProperties) {
 		if (containerProperties == null) {
 			throw new IllegalArgumentException("'containerProperties' cannot be null");
@@ -40,6 +48,10 @@ public abstract class AbstractUpdateListenerContainer implements UpdateListenerC
 		}
 	}
 
+	/**
+	 * Performs the actual start logic. Called by {@link #start()} while holding
+	 * the lifecycle lock and only if the container is not already running.
+	 */
 	protected abstract void doStart();
 
 	@Override
@@ -63,6 +75,27 @@ public abstract class AbstractUpdateListenerContainer implements UpdateListenerC
 		}
 	}
 
+	@Override
+	public void stop(Runnable callback) {
+		this.lifecycleLock.lock();
+		try {
+			if (isRunning()) {
+				doStop(callback);
+			}
+			else {
+				callback.run();
+			}
+		}
+		finally {
+			this.lifecycleLock.unlock();
+		}
+	}
+
+	/**
+	 * Performs the actual stop logic. Called by {@link #stop()} and
+	 * {@link #stop(Runnable)} while holding the lifecycle lock.
+	 * @param callback a callback to invoke once the container has stopped
+	 */
 	protected abstract void doStop(Runnable callback);
 
 	@Override
@@ -70,6 +103,10 @@ public abstract class AbstractUpdateListenerContainer implements UpdateListenerC
 		return this.running;
 	}
 
+	/**
+	 * Sets the running state of this container.
+	 * @param running {@code true} if the container is running
+	 */
 	protected void setRunning(boolean running) {
 		this.running = running;
 	}

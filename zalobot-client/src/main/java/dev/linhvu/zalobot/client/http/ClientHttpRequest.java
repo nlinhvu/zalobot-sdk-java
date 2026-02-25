@@ -12,6 +12,8 @@ import java.util.Map;
  * <p>Implementations buffer the request body and headers, then execute the
  * actual HTTP call when {@link #execute()} is invoked.
  *
+ * @author Linh Vu
+ * @since 0.0.1
  * @see ClientHttpRequestFactory
  * @see ClientHttpResponse
  */

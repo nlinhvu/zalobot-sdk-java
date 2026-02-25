@@ -6,6 +6,9 @@ package dev.linhvu.zalobot.client.exception;
  *
  * <p>This typically indicates a mismatch between the expected and actual JSON
  * structure, or a Jackson configuration issue.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public class ZaloBotSerializationException extends ZaloBotException {
 

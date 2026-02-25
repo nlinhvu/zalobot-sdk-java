@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @param chatId the identifier of the target chat
  * @param sticker the identifier of the sticker to send
+ * @author Linh Vu
+ * @since 0.0.1
  * @see SendMessageResult
  */
 public record SendSticker(

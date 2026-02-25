@@ -9,6 +9,8 @@ package dev.linhvu.zalobot.client;
  * @param scheme the URL scheme (e.g., {@code "https"})
  * @param host the API hostname
  * @param port the port number
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public record ZaloBotUrl(
 		String scheme,

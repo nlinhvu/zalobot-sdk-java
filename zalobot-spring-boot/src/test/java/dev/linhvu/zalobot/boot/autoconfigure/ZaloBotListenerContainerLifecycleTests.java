@@ -39,6 +39,6 @@ class ZaloBotListenerContainerLifecycleTests {
 
 	@Test
 	void getPhase_returnsIntegerMaxValue() {
-		assertThat(lifecycle.getPhase()).isEqualTo(Integer.MAX_VALUE);
+		assertThat(lifecycle.getPhase()).isEqualTo(Integer.MAX_VALUE - 100);
 	}
 }

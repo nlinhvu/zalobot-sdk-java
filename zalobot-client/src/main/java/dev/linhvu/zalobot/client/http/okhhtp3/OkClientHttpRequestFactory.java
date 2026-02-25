@@ -11,6 +11,9 @@ import okhttp3.OkHttpClient;
  * {@link ClientHttpRequestFactory} implementation backed by OkHttp3.
  *
  * <p>If no {@link OkHttpClient} is provided, a default instance is created.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public class OkClientHttpRequestFactory implements ClientHttpRequestFactory {
 

@@ -1,6 +1,5 @@
 package dev.linhvu.zalobot.boot.autoconfigure;
 
-import dev.linhvu.zalobot.listener.ConcurrentUpdateListenerContainer;
 import dev.linhvu.zalobot.listener.ContainerProperties;
 import dev.linhvu.zalobot.listener.ErrorHandler;
 import dev.linhvu.zalobot.listener.UpdateListener;
@@ -54,20 +53,6 @@ class ZaloBotListenerAutoConfigurationTests {
 	}
 
 	@Test
-	void whenConcurrencyGreaterThanOne_thenConcurrentContainer() {
-		this.contextRunner
-				.withPropertyValues(
-						"zalobot.bot-token=test-token",
-						"zalobot.listener.concurrency=3")
-				.withBean(UpdateListener.class, () -> update -> {})
-				.run(context -> {
-					assertThat(context).hasSingleBean(UpdateListenerContainer.class);
-					assertThat(context.getBean(UpdateListenerContainer.class))
-							.isInstanceOf(ConcurrentUpdateListenerContainer.class);
-				});
-	}
-
-	@Test
 	void whenCustomErrorHandlerPresent_thenUsedByContainer() {
 		ErrorHandler customHandler = (exception, container) -> {};
 
@@ -88,18 +73,20 @@ class ZaloBotListenerAutoConfigurationTests {
 				.withPropertyValues(
 						"zalobot.bot-token=test-token",
 						"zalobot.listener.poll-timeout=60s",
-						"zalobot.listener.poll-interval=5s",
 						"zalobot.listener.shutdown-timeout=30s",
 						"zalobot.listener.back-off-interval=2s",
-						"zalobot.listener.max-back-off-interval=120s")
+						"zalobot.listener.max-back-off-interval=120s",
+						"zalobot.listener.queue-capacity=128",
+						"zalobot.listener.processing-concurrency=4")
 				.withBean(UpdateListener.class, () -> update -> {})
 				.run(context -> {
 					ContainerProperties cp = context.getBean(ContainerProperties.class);
 					assertThat(cp.getPollTimeout()).isEqualTo(java.time.Duration.ofSeconds(60));
-					assertThat(cp.getPollInterval()).isEqualTo(java.time.Duration.ofSeconds(5));
 					assertThat(cp.getShutdownTimeout()).isEqualTo(java.time.Duration.ofSeconds(30));
 					assertThat(cp.getBackOffInterval()).isEqualTo(java.time.Duration.ofSeconds(2));
 					assertThat(cp.getMaxBackOffInterval()).isEqualTo(java.time.Duration.ofSeconds(120));
+					assertThat(cp.getQueueCapacity()).isEqualTo(128);
+					assertThat(cp.getProcessingConcurrency()).isEqualTo(4);
 				});
 	}
 }

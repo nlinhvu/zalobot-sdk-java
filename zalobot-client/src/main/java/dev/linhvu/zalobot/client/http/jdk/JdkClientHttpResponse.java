@@ -8,6 +8,9 @@ import dev.linhvu.zalobot.client.http.ClientHttpResponse;
 
 /**
  * {@link ClientHttpResponse} implementation that wraps a JDK {@link HttpResponse}.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public class JdkClientHttpResponse implements ClientHttpResponse {
 

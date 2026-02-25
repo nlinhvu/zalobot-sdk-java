@@ -11,6 +11,7 @@ import dev.linhvu.zalobot.client.exception.ZaloBotApiException;
 import dev.linhvu.zalobot.client.exception.ZaloBotAuthenticationException;
 import dev.linhvu.zalobot.client.exception.ZaloBotClientException;
 import dev.linhvu.zalobot.client.exception.ZaloBotException;
+import dev.linhvu.zalobot.client.exception.ZaloBotRequestTimeoutException;
 import dev.linhvu.zalobot.client.exception.ZaloBotSerializationException;
 import dev.linhvu.zalobot.client.exception.ZaloErrorCode;
 import dev.linhvu.zalobot.client.http.ClientHttpRequest;
@@ -59,6 +60,7 @@ final class DefaultZaloBotClient implements ZaloBotClient {
 		this.builder = builder;
 	}
 
+	/** Returns a new builder pre-populated with this client's configuration. */
 	public Builder mutate() {
 		return new DefaultZaloBotClientBuilder(this.builder);
 	}
@@ -94,6 +96,7 @@ final class DefaultZaloBotClient implements ZaloBotClient {
 		return new DefaultRequestBodySpec<>(HttpMethod.POST, "sendChatAction");
 	}
 
+	/** Builds the full API URI for the given method path. */
 	private URI buildUri(String methodPath) {
 		try {
 			return new URI(
@@ -110,6 +113,7 @@ final class DefaultZaloBotClient implements ZaloBotClient {
 		}
 	}
 
+	/** Executes an HTTP request and deserializes the API response, mapping errors to exceptions. */
 	private <N> ZaloApiResponse<N> exchangeInternal(HttpMethod method, String methodPath, Map<String, String> headers, Object body, Class<N> clazz) {
 
 		URI uri = buildUri(methodPath);
@@ -141,6 +145,9 @@ final class DefaultZaloBotClient implements ZaloBotClient {
 				if (code.isAuthenticationError()) {
 					throw new ZaloBotAuthenticationException(httpStatus, apiResponse.errorCode(), description);
 				}
+				if (code.isRequestTimeout()) {
+					throw new ZaloBotRequestTimeoutException(httpStatus, apiResponse.errorCode(), description);
+				}
 				throw new ZaloBotApiException(httpStatus, apiResponse.errorCode(), description);
 			}
 			return apiResponse;
@@ -153,6 +160,7 @@ final class DefaultZaloBotClient implements ZaloBotClient {
 		}
 	}
 
+	/** Default {@link RequestBodySpec} that accumulates headers and body for a request. */
 	private class DefaultRequestBodySpec<M, N> implements RequestBodySpec<M, N> {
 
 		private final HttpMethod method;
@@ -184,6 +192,7 @@ final class DefaultZaloBotClient implements ZaloBotClient {
 		}
 	}
 
+	/** Default {@link ResponseSpec} that delegates to {@link #exchangeInternal}. */
 	private class DefaultResponseSpec<N> implements ResponseSpec<N> {
 
 		private final DefaultRequestBodySpec<?, N> requestSpec;

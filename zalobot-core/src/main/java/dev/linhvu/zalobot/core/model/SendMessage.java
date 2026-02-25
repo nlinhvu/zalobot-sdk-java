@@ -10,6 +10,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @param chat_id the identifier of the target chat
  * @param text the text content to send (maximum 2000 characters)
+ * @author Linh Vu
+ * @since 0.0.1
  * @see SendMessageResult
  */
 public record SendMessage(

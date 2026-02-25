@@ -31,6 +31,8 @@ import tools.jackson.databind.json.JsonMapper;
  * ZaloBotClient client = ZaloBotClient.botToken("your-bot-token");
  * }</pre>
  *
+ * @author Linh Vu
+ * @since 0.0.1
  * @see ZaloBotUrl
  */
 public interface ZaloBotClient {

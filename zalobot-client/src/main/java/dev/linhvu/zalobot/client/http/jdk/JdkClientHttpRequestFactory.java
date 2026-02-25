@@ -14,6 +14,9 @@ import dev.linhvu.zalobot.client.http.HttpMethod;
  *
  * <p>Supports configurable read timeouts. If no {@link HttpClient} is provided,
  * a default instance is created.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public class JdkClientHttpRequestFactory implements ClientHttpRequestFactory {
 

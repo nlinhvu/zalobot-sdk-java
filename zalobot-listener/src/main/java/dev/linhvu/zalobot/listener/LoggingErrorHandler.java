@@ -6,6 +6,9 @@ import org.slf4j.LoggerFactory;
 /**
  * Default {@link ErrorHandler} implementation that logs errors at ERROR level
  * using SLF4J.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public class LoggingErrorHandler implements ErrorHandler {
 

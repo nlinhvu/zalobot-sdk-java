@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @param chatId the identifier of the target chat
  * @param action the action type (e.g., {@code "typing"}, {@code "upload_photo"})
+ * @author Linh Vu
+ * @since 0.0.1
  * @see SendMessageResult
  */
 public record SendChatAction(

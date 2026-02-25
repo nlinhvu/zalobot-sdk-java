@@ -12,6 +12,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  *
  * @param message the message payload associated with this update
  * @param eventName the event type identifier (e.g., {@code "message.text.received"})
+ * @author Linh Vu
+ * @since 0.0.1
  * @see GetUpdates
  */
 public record GetUpdatesResult(

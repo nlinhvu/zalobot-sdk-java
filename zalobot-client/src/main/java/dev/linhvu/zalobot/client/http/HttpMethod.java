@@ -5,6 +5,9 @@ package dev.linhvu.zalobot.client.http;
  *
  * <p>Pre-defined constants are provided for all standard HTTP methods.
  * Custom methods can be obtained via {@link #valueOf(String)}.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public final class HttpMethod {
 

@@ -120,6 +120,7 @@ class JdkClientHttpRequest implements ClientHttpRequest {
 		return builder.build();
 	}
 
+	/** Manages read-timeout cancellation for an in-flight async HTTP request. */
 	private final class TimeoutHandler {
 
 		private final CompletableFuture<Void> timeoutFuture;

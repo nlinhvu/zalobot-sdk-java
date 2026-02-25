@@ -9,6 +9,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param accountName the display name of the bot account
  * @param accountType the type of the account (e.g., "Official Account")
  * @param canJoinGroups whether the bot is allowed to join group chats
+ * @author Linh Vu
+ * @since 0.0.1
  * @see GetMe
  */
 public record GetMeResult(

@@ -100,6 +100,7 @@ class OkClientHttpRequest implements ClientHttpRequest {
 		}
 	}
 
+	/** OkHttp {@link Callback} that bridges the async result to a {@link CompletableFuture}. */
 	class OkHttpClientCallback implements Callback {
 
 		private final CompletableFuture<Response> completableFuture;

@@ -13,6 +13,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param ok whether the API request was successful
  * @param result the result payload, or {@code null} if the request failed
  * @param errorCode the error code returned by the API; {@code 0} indicates success
+ * @author Linh Vu
+ * @since 0.0.1
  */
 public record ZaloApiResponse<T>(
 		boolean ok,

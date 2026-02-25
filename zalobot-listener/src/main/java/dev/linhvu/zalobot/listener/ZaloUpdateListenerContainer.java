@@ -1,13 +1,22 @@
 package dev.linhvu.zalobot.listener;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Stream;
 
 import dev.linhvu.zalobot.client.ZaloBotClient;
+import dev.linhvu.zalobot.client.exception.ZaloBotRequestTimeoutException;
 import dev.linhvu.zalobot.core.model.GetUpdates;
 import dev.linhvu.zalobot.core.model.GetUpdatesResult;
 import dev.linhvu.zalobot.core.model.ZaloApiResponse;
@@ -15,119 +24,147 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Single-threaded {@link UpdateListenerContainer} that continuously polls the
- * Zalo Bot API for updates using long-polling.
+ * {@link UpdateListenerContainer} implementation that polls the Zalo Bot API
+ * using a dedicated polling thread and dispatches received updates to the
+ * configured {@link UpdateListener} via a bounded {@link java.util.concurrent.BlockingQueue}.
  *
- * <p>The polling loop runs in a dedicated thread managed by a configurable
- * {@link java.util.concurrent.Executor}. On errors, it applies exponential
- * backoff before retrying. Supports pause/resume for temporarily suspending
- * polling without stopping the container.
+ * <p>The container uses a producer–consumer architecture:
+ * <ul>
+ *   <li>A single polling thread issues {@code getUpdates} calls and enqueues results.</li>
+ *   <li>One or more processing threads dequeue and dispatch updates to the listener.</li>
+ * </ul>
  *
- * @see ConcurrentUpdateListenerContainer
+ * <p>Error handling is delegated to the configured {@link ErrorHandler}, with
+ * automatic exponential backoff on consecutive poll failures.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
+ * @see ContainerProperties#getProcessingConcurrency()
+ * @see ContainerProperties#getQueueCapacity()
  */
 public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer {
 
 	private static final Logger logger = LoggerFactory.getLogger(ZaloUpdateListenerContainer.class);
 
 	private final ZaloBotClient client;
-	private final AbstractUpdateListenerContainer thisOrParentContainer;
-	private volatile ListenerConsumer listenerConsumer;
-	private volatile CompletableFuture<Void> listenerConsumerFuture;
+
 	private volatile CountDownLatch startLatch = new CountDownLatch(1);
+	private BlockingQueue<GetUpdatesResult> updateQueue;
+	private ExecutorService pollingExecutor;
+	private ExecutorService processingExecutor;
+	private CompletableFuture<Void> pollingFuture;
+	private List<CompletableFuture<Void>> processingFutures;
 
 	public ZaloUpdateListenerContainer(ZaloBotClient client, ContainerProperties containerProperties) {
-		this(null, client, containerProperties);
-	}
-
-	ZaloUpdateListenerContainer(AbstractUpdateListenerContainer parent, ZaloBotClient client, ContainerProperties containerProperties) {
 		super(containerProperties);
 		if (client == null) {
 			throw new IllegalArgumentException("'client' cannot be null");
 		}
 		this.client = client;
-		this.thisOrParentContainer = (parent != null) ? parent : this;
 	}
 
 	@Override
 	protected void doStart() {
-		if (isRunning()) {
-			return;
-		}
-
 		ContainerProperties properties = getContainerProperties();
 		UpdateListener listener = properties.getUpdateListener();
+		ErrorHandler errorHandler = properties.getErrorHandler();
+		if (errorHandler == null) {
+			errorHandler = new LoggingErrorHandler();
+		}
+		int concurrency = properties.getProcessingConcurrency();
 
-		Executor executor = properties.getListenerTaskExecutor();
-		if (executor == null) {
-			executor = Executors.newSingleThreadExecutor(r -> {
-				Thread thread = new Thread(r, "zalo-listener-consumer");
-				thread.setDaemon(true);
-				return thread;
-			});
-			properties.setListenerTaskExecutor(executor);
+		// 1. Create the shared bounded queue
+		this.updateQueue = new LinkedBlockingQueue<>(properties.getQueueCapacity());
+
+		// 2. Set running before submitting loops so they see isRunning() == true
+		setRunning(true);
+
+		// 3. Create and start the single polling thread
+		this.startLatch = new CountDownLatch(1);
+		this.pollingExecutor = Executors.newSingleThreadExecutor(r -> {
+			Thread t = new Thread(r, "zalo-poll-0");
+			t.setDaemon(false);
+			return t;
+		});
+		PollingLoop pollingLoop = new PollingLoop(this.updateQueue);
+		this.pollingFuture = CompletableFuture.runAsync(pollingLoop, this.pollingExecutor);
+
+		// 4. Create and start processing threads
+		AtomicInteger threadIndex = new AtomicInteger(0);
+		this.processingExecutor = Executors.newFixedThreadPool(concurrency, r -> {
+			Thread t = new Thread(r, "zalo-process-" + threadIndex.getAndIncrement());
+			t.setDaemon(false);
+			return t;
+		});
+		this.processingFutures = new ArrayList<>();
+		ProcessingLoop processingLoop = new ProcessingLoop(this.updateQueue, listener, errorHandler);
+		for (int i = 0; i < concurrency; i++) {
+			this.processingFutures.add(CompletableFuture.runAsync(processingLoop, this.processingExecutor));
 		}
 
-		this.listenerConsumer = new ListenerConsumer(listener);
-		setRunning(true);
-		this.startLatch = new CountDownLatch(1);
-
-		CompletableFuture<Void> future = new CompletableFuture<>();
-		executor.execute(() -> {
-			try {
-				this.listenerConsumer.run();
-				future.complete(null);
-			} catch (Throwable t) {
-				future.completeExceptionally(t);
-			}
-		});
-		this.listenerConsumerFuture = future;
-
+		// 5. Wait for polling thread to signal readiness
 		try {
-			if (!this.startLatch.await(5, TimeUnit.SECONDS)) {
-				logger.warn("Consumer thread failed to start within 5 seconds");
+			if (!startLatch.await(5, TimeUnit.SECONDS)) {
+				setRunning(false);
+				throw new IllegalStateException("Polling thread did not start within 5 seconds");
 			}
 		}
 		catch (InterruptedException e) {
+			setRunning(false);
 			Thread.currentThread().interrupt();
+			throw new IllegalStateException("Interrupted while waiting for start", e);
 		}
 	}
 
 	@Override
 	protected void doStop(Runnable callback) {
-		if (isRunning()) {
-			setRunning(false);
-			if (this.listenerConsumerFuture != null) {
-				this.listenerConsumerFuture.whenComplete((result, ex) -> callback.run());
-			}
-			else {
-				callback.run();
-			}
+		// 1. Signal all loops to stop
+		setRunning(false);
+
+		// 2. Stop adding more runAsync or execute from Executor
+		this.pollingExecutor.shutdown();
+		this.processingExecutor.shutdown();
+
+		// 3. Wait for polling and processing threads to run to its end
+		CompletableFuture<Void> allProcessing = CompletableFuture.allOf(
+				Stream.concat(Stream.of(this.pollingFuture), this.processingFutures.stream())
+						.toArray(CompletableFuture[]::new)
+		);
+		try {
+			Duration shutdownTimeout = getContainerProperties().getShutdownTimeout();
+			allProcessing.get(shutdownTimeout.toMillis(), TimeUnit.MILLISECONDS);
 		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			this.pollingExecutor.shutdownNow();
+			this.processingExecutor.shutdownNow();
+		}
+		catch (ExecutionException | TimeoutException e) {
+			this.pollingExecutor.shutdownNow();
+			this.processingExecutor.shutdownNow();
+		}
+
+		callback.run();
 	}
 
 	@Override
 	public boolean isContainerPaused() {
-		return isPauseRequested() && this.listenerConsumer != null
-				&& this.listenerConsumer.consumerPaused;
+		return isPauseRequested();
 	}
 
-	private final class ListenerConsumer implements Runnable {
+	/** Runnable that continuously polls the Zalo Bot API and enqueues results. */
+	private final class PollingLoop implements Runnable {
 
-		private final UpdateListener listener;
-		private volatile boolean consumerPaused = false;
+		private final BlockingQueue<GetUpdatesResult> queue;
 
-		ListenerConsumer(UpdateListener listener) {
-			this.listener = listener;
+		PollingLoop(BlockingQueue<GetUpdatesResult> queue) {
+			this.queue = queue;
 		}
 
 		@Override
 		public void run() {
-			ZaloUpdateListenerContainer.this.startLatch.countDown();
-
 			ContainerProperties properties = getContainerProperties();
-			Duration pollInterval = properties.getPollInterval();
 			Duration pollTimeout = properties.getPollTimeout();
-
 			ErrorHandler errorHandler = properties.getErrorHandler();
 			if (errorHandler == null) {
 				errorHandler = new LoggingErrorHandler();
@@ -137,35 +174,41 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 					properties.getBackOffInterval(),
 					properties.getMaxBackOffInterval());
 
+			ZaloUpdateListenerContainer.this.startLatch.countDown();
 			while (isRunning()) {
 				try {
 					if (isPauseRequested()) {
-						if (!this.consumerPaused) {
-							this.consumerPaused = true;
-						}
-						TimeUnit.MILLISECONDS.sleep(pollInterval.toMillis());
+						TimeUnit.MILLISECONDS.sleep(500);
 						continue;
 					}
-					else if (this.consumerPaused) {
-						this.consumerPaused = false;
+
+					logger.debug("Start calling /getUpdates for long-polling new message.");
+					ZaloApiResponse<GetUpdatesResult> response = ZaloUpdateListenerContainer.this.client
+							.getUpdates()
+							.body(new GetUpdates(pollTimeout.toSeconds()))
+							.retrieve()
+							.call(GetUpdatesResult.class);
+
+					if (response != null && response.ok() && response.result() != null) {
+						logger.debug("Put the message into queue.");
+						this.queue.put(response.result());
 					}
 
-					pollAndInvoke(pollTimeout);
 					backOff.reset();
-					TimeUnit.MILLISECONDS.sleep(pollInterval.toMillis());
 				}
 				catch (InterruptedException e) {
 					Thread.currentThread().interrupt();
 					break;
 				}
 				catch (Exception e) {
-					errorHandler.handleError(e, ZaloUpdateListenerContainer.this);
-
-					long backOffMillis = backOff.nextBackOffMillis();
-					try {
-						TimeUnit.MILLISECONDS.sleep(backOffMillis);
+					if (isTimeoutError(e)) {
+						continue;
 					}
-					catch (InterruptedException ie) {
+
+					errorHandler.handleError(e, ZaloUpdateListenerContainer.this);
+					try {
+						TimeUnit.MILLISECONDS.sleep(backOff.nextBackOffMillis());
+					} catch (InterruptedException ie) {
 						Thread.currentThread().interrupt();
 						break;
 					}
@@ -173,15 +216,47 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 			}
 		}
 
-		private void pollAndInvoke(Duration pollTimeout) {
-			ZaloApiResponse<GetUpdatesResult> response = ZaloUpdateListenerContainer.this.client
-					.getUpdates()
-					.body(new GetUpdates(pollTimeout.toSeconds()))
-					.retrieve()
-					.call(GetUpdatesResult.class);
+		private boolean isTimeoutError(Exception e) {
+			Throwable cause = e;
+			while (cause != null) {
+				if (cause instanceof ZaloBotRequestTimeoutException) {
+					return true;
+				}
+				cause = cause.getCause();
+			}
+			return false;
+		}
+	}
 
-			if (response != null && response.ok() && response.result() != null) {
-				this.listener.onUpdate(response.result());
+	/** Runnable that dequeues updates and dispatches them to the {@link UpdateListener}. */
+	private final class ProcessingLoop implements Runnable {
+
+		private final BlockingQueue<GetUpdatesResult> queue;
+		private final UpdateListener listener;
+		private final ErrorHandler errorHandler;
+
+		private ProcessingLoop(BlockingQueue<GetUpdatesResult> queue, UpdateListener listener, ErrorHandler errorHandler) {
+			this.queue = queue;
+			this.listener = listener;
+			this.errorHandler = errorHandler;
+		}
+
+		@Override
+		public void run() {
+			while (isRunning() || !queue.isEmpty()) {
+				try {
+					GetUpdatesResult update = queue.poll(1, TimeUnit.SECONDS);
+					if (update != null) {
+						listener.onUpdate(update);
+					}
+				}
+				catch (InterruptedException e) {
+					Thread.currentThread().interrupt();
+					break;
+				}
+				catch (Exception e) {
+					errorHandler.handleError(e, ZaloUpdateListenerContainer.this);
+				}
 			}
 		}
 	}

@@ -23,6 +23,8 @@ import org.springframework.context.annotation.Scope;
  * {@link ZaloBotClient.Builder} bean (applying any {@link ZaloBotClientCustomizer}
  * beans) and a singleton {@link ZaloBotClient} bean.
  *
+ * @author Linh Vu
+ * @since 0.0.1
  * @see ZaloBotProperties
  * @see ZaloBotClientCustomizer
  */

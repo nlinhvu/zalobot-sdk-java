@@ -54,7 +54,7 @@ class ZaloBotClientAutoConfigurationTests {
 						"zalobot.client.host=custom-api.example.com",
 						"zalobot.client.port=8443",
 						"zalobot.listener.poll-timeout=60s",
-						"zalobot.listener.concurrency=3")
+						"zalobot.listener.processing-concurrency=3")
 				.run(context -> {
 					ZaloBotProperties props = context.getBean(ZaloBotProperties.class);
 					assertThat(props.getBotToken()).isEqualTo("test-token");
@@ -62,7 +62,7 @@ class ZaloBotClientAutoConfigurationTests {
 					assertThat(props.getClient().getPort()).isEqualTo(8443);
 					assertThat(props.getListener().getPollTimeout())
 							.isEqualTo(java.time.Duration.ofSeconds(60));
-					assertThat(props.getListener().getConcurrency()).isEqualTo(3);
+					assertThat(props.getListener().getProcessingConcurrency()).isEqualTo(3);
 				});
 	}
 

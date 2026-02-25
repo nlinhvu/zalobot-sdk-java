@@ -7,8 +7,9 @@ package dev.linhvu.zalobot.listener;
  * <p>Supports start/stop lifecycle management as well as pause/resume
  * functionality. Implements {@link AutoCloseable} for use in try-with-resources.
  *
+ * @author Linh Vu
+ * @since 0.0.1
  * @see ZaloUpdateListenerContainer
- * @see ConcurrentUpdateListenerContainer
  */
 public interface UpdateListenerContainer extends AutoCloseable {
 
@@ -67,6 +68,18 @@ public interface UpdateListenerContainer extends AutoCloseable {
 	 * @return the container properties
 	 */
 	ContainerProperties getContainerProperties();
+
+	/**
+	 * Stops the container asynchronously. The callback is invoked after the
+	 * container has fully stopped. If the container is not running, the
+	 * callback is invoked immediately.
+	 *
+	 * @param callback invoked when the container has stopped
+	 */
+	default void stop(Runnable callback) {
+		stop();
+		callback.run();
+	}
 
 	/**
 	 * Stops the container. Equivalent to calling {@link #stop()}.

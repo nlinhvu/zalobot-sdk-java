@@ -9,7 +9,7 @@ import org.springframework.context.SmartLifecycle;
  * {@link SmartLifecycle} mechanism.
  *
  * <p>Configured to auto-start ({@link #isAutoStartup()} returns {@code true})
- * and runs at the latest phase ({@link Integer#MAX_VALUE}) to ensure the
+ * and runs at a late phase ({@code Integer.MAX_VALUE - 100}) to ensure the
  * listener starts after all other beans are initialized.
  */
 class ZaloBotListenerContainerLifecycle implements SmartLifecycle {
@@ -31,6 +31,11 @@ class ZaloBotListenerContainerLifecycle implements SmartLifecycle {
 	}
 
 	@Override
+	public void stop(Runnable callback) {
+		this.container.stop(callback);
+	}
+
+	@Override
 	public boolean isRunning() {
 		return this.container.isRunning();
 	}
@@ -42,6 +47,6 @@ class ZaloBotListenerContainerLifecycle implements SmartLifecycle {
 
 	@Override
 	public int getPhase() {
-		return Integer.MAX_VALUE;
+		return Integer.MAX_VALUE - 100;
 	}
 }

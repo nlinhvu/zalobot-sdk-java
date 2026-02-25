@@ -9,14 +9,19 @@
         <version>0.0.1</version>
     </parent>
 
-    <artifactId>zalobot-spring-boot-starter</artifactId>
-    <name>ZaloBot Spring Boot Starter</name>
-    <description>Spring Boot Starter for the Zalo Bot API</description>
+    <artifactId>zalobot-samples</artifactId>
+    <packaging>pom</packaging>
+    <name>ZaloBot SDK Samples</name>
+    <modules>
+        <module>zalobot-sample-spring-boot-echo-bot</module>
+    </modules>
 
     <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <maven.install.skip>true</maven.install.skip>
         <jacoco.skip>true</jacoco.skip>
-        <sonar.skip>true</sonar.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
+        <gpg.skip>true</gpg.skip>
     </properties>
 
     <dependencyManagement>
@@ -30,27 +35,4 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>dev.linhvu</groupId>
-            <artifactId>zalobot-client</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>dev.linhvu</groupId>
-            <artifactId>zalobot-listener</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>dev.linhvu</groupId>
-            <artifactId>zalobot-spring-boot</artifactId>
-            <version>${project.parent.version}</version>
-        </dependency>
-    </dependencies>
 </project>

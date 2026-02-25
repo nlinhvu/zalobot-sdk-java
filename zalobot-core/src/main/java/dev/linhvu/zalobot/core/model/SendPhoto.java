@@ -11,6 +11,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * @param chatId the identifier of the target chat
  * @param caption an optional caption for the photo, or {@code null}
  * @param photo the URL or identifier of the photo to send
+ * @author Linh Vu
+ * @since 0.0.1
  * @see SendMessageResult
  */
 public record SendPhoto(

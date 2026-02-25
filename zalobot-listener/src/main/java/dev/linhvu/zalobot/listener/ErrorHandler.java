@@ -3,6 +3,8 @@ package dev.linhvu.zalobot.listener;
 /**
  * Strategy interface for handling exceptions thrown during update polling or processing.
  *
+ * @author Linh Vu
+ * @since 0.0.1
  * @see LoggingErrorHandler
  */
 @FunctionalInterface

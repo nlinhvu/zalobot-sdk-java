@@ -7,6 +7,8 @@ package dev.linhvu.zalobot.client.exception;
  * <p>This is a specialized subclass of {@link ZaloBotApiException} for errors
  * such as invalid access tokens, expired tokens, or unauthorized access.
  *
+ * @author Linh Vu
+ * @since 0.0.1
  * @see ZaloErrorCode#isAuthenticationError()
  */
 public class ZaloBotAuthenticationException extends ZaloBotApiException {

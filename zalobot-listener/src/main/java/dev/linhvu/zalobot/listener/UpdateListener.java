@@ -8,6 +8,8 @@ import dev.linhvu.zalobot.core.model.GetUpdatesResult;
  * <p>Implementations of this interface are invoked by the listener container
  * each time a new update is received.
  *
+ * @author Linh Vu
+ * @since 0.0.1
  * @see UpdateListenerContainer
  */
 @FunctionalInterface

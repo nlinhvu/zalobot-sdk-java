@@ -23,18 +23,34 @@ public class ZaloBotProperties {
 	private final Client client = new Client();
 	private final Listener listener = new Listener();
 
+	/**
+	 * Returns the bot token.
+	 * @return the bot token
+	 */
 	public String getBotToken() {
 		return this.botToken;
 	}
 
+	/**
+	 * Sets the bot token.
+	 * @param botToken the bot token
+	 */
 	public void setBotToken(String botToken) {
 		this.botToken = botToken;
 	}
 
+	/**
+	 * Returns the client connection properties.
+	 * @return the client properties
+	 */
 	public Client getClient() {
 		return this.client;
 	}
 
+	/**
+	 * Returns the listener container properties.
+	 * @return the listener properties
+	 */
 	public Listener getListener() {
 		return this.listener;
 	}
@@ -60,26 +76,50 @@ public class ZaloBotProperties {
 		 */
 		private int port = 443;
 
+		/**
+		 * Returns the URL scheme.
+		 * @return the scheme
+		 */
 		public String getScheme() {
 			return this.scheme;
 		}
 
+		/**
+		 * Sets the URL scheme.
+		 * @param scheme the scheme
+		 */
 		public void setScheme(String scheme) {
 			this.scheme = scheme;
 		}
 
+		/**
+		 * Returns the API hostname.
+		 * @return the host
+		 */
 		public String getHost() {
 			return this.host;
 		}
 
+		/**
+		 * Sets the API hostname.
+		 * @param host the host
+		 */
 		public void setHost(String host) {
 			this.host = host;
 		}
 
+		/**
+		 * Returns the API port.
+		 * @return the port
+		 */
 		public int getPort() {
 			return this.port;
 		}
 
+		/**
+		 * Sets the API port.
+		 * @param port the port
+		 */
 		public void setPort(int port) {
 			this.port = port;
 		}
@@ -104,12 +144,6 @@ public class ZaloBotProperties {
 		private Duration pollTimeout = Duration.ofSeconds(30);
 
 		/**
-		 * Interval between poll cycles.
-		 * Maps to ContainerProperties.pollInterval.
-		 */
-		private Duration pollInterval = Duration.ofSeconds(0);
-
-		/**
 		 * Maximum time to wait for the listener container to shut down gracefully.
 		 * Maps to ContainerProperties.shutdownTimeout.
 		 */
@@ -128,66 +162,125 @@ public class ZaloBotProperties {
 		private Duration maxBackOffInterval = Duration.ofSeconds(30);
 
 		/**
-		 * Number of concurrent listener containers.
-		 * 1 creates a single ZaloUpdateListenerContainer.
-		 * >1 creates a ConcurrentUpdateListenerContainer with this many children.
+		 * Capacity of the bounded queue between the polling thread and processing threads.
 		 */
-		private int concurrency = 1;
+		private int queueCapacity = 64;
 
+		/**
+		 * Number of concurrent threads for processing updates.
+		 */
+		private int processingConcurrency = 1;
+
+		/**
+		 * Returns whether the listener container is enabled.
+		 * @return {@code true} if enabled
+		 */
 		public boolean isEnabled() {
 			return this.enabled;
 		}
 
+		/**
+		 * Sets whether the listener container is enabled.
+		 * @param enabled {@code true} to enable
+		 */
 		public void setEnabled(boolean enabled) {
 			this.enabled = enabled;
 		}
 
+		/**
+		 * Returns the poll timeout.
+		 * @return the poll timeout
+		 */
 		public Duration getPollTimeout() {
 			return this.pollTimeout;
 		}
 
+		/**
+		 * Sets the poll timeout.
+		 * @param pollTimeout the poll timeout
+		 */
 		public void setPollTimeout(Duration pollTimeout) {
 			this.pollTimeout = pollTimeout;
 		}
 
-		public Duration getPollInterval() {
-			return this.pollInterval;
-		}
-
-		public void setPollInterval(Duration pollInterval) {
-			this.pollInterval = pollInterval;
-		}
-
+		/**
+		 * Returns the shutdown timeout.
+		 * @return the shutdown timeout
+		 */
 		public Duration getShutdownTimeout() {
 			return this.shutdownTimeout;
 		}
 
+		/**
+		 * Sets the shutdown timeout.
+		 * @param shutdownTimeout the shutdown timeout
+		 */
 		public void setShutdownTimeout(Duration shutdownTimeout) {
 			this.shutdownTimeout = shutdownTimeout;
 		}
 
+		/**
+		 * Returns the backoff interval.
+		 * @return the backoff interval
+		 */
 		public Duration getBackOffInterval() {
 			return this.backOffInterval;
 		}
 
+		/**
+		 * Sets the backoff interval.
+		 * @param backOffInterval the backoff interval
+		 */
 		public void setBackOffInterval(Duration backOffInterval) {
 			this.backOffInterval = backOffInterval;
 		}
 
+		/**
+		 * Returns the maximum backoff interval.
+		 * @return the maximum backoff interval
+		 */
 		public Duration getMaxBackOffInterval() {
 			return this.maxBackOffInterval;
 		}
 
+		/**
+		 * Sets the maximum backoff interval.
+		 * @param maxBackOffInterval the maximum backoff interval
+		 */
 		public void setMaxBackOffInterval(Duration maxBackOffInterval) {
 			this.maxBackOffInterval = maxBackOffInterval;
 		}
 
-		public int getConcurrency() {
-			return this.concurrency;
+		/**
+		 * Returns the queue capacity.
+		 * @return the queue capacity
+		 */
+		public int getQueueCapacity() {
+			return queueCapacity;
 		}
 
-		public void setConcurrency(int concurrency) {
-			this.concurrency = concurrency;
+		/**
+		 * Sets the queue capacity.
+		 * @param queueCapacity the queue capacity
+		 */
+		public void setQueueCapacity(int queueCapacity) {
+			this.queueCapacity = queueCapacity;
+		}
+
+		/**
+		 * Returns the processing concurrency.
+		 * @return the processing concurrency
+		 */
+		public int getProcessingConcurrency() {
+			return processingConcurrency;
+		}
+
+		/**
+		 * Sets the processing concurrency.
+		 * @param processingConcurrency the processing concurrency
+		 */
+		public void setProcessingConcurrency(int processingConcurrency) {
+			this.processingConcurrency = processingConcurrency;
 		}
 	}
 }

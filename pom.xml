@@ -41,6 +41,7 @@
         <module>zalobot-spring-boot</module>
         <module>zalobot-spring-boot-starter</module>
         <module>zalobot-sonarqube-reports</module>
+        <module>zalobot-samples</module>
     </modules>
 
     <properties>
@@ -58,22 +59,12 @@
 
         <okhttp.version>4.12.0</okhttp.version>
         <jackson-databind.version>3.0.4</jackson-databind.version>
+        <slf4j-api.version>2.0.17</slf4j-api.version>
+        <logback-classic.version>1.5.32</logback-classic.version>
         <junit-jupiter.version>6.0.2</junit-jupiter.version>
         <assertj-core.version>3.27.7</assertj-core.version>
         <mockito-core.version>5.21.0</mockito-core.version>
     </properties>
-
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-dependencies</artifactId>
-                <version>${spring-boot.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
 
     <build>
         <pluginManagement>
