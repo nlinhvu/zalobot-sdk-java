@@ -168,6 +168,11 @@
                         <configuration>
                             <publishingServerId>central</publishingServerId>
                             <autoPublish>false</autoPublish>
+                            <excludeArtifacts>
+                                <excludeArtifact>zalobot-sonarqube-reports</excludeArtifact>
+                                <excludeArtifact>zalobot-samples</excludeArtifact>
+                                <excludeArtifact>zalobot-sample-spring-boot-echo-bot</excludeArtifact>
+                            </excludeArtifacts>
                         </configuration>
                     </plugin>
                 </plugins>
