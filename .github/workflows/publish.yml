@@ -33,7 +33,7 @@ jobs:
           ./mvnw versions:set -DnewVersion=$VERSION --batch-mode
 
       - name: Deploy to Maven Central
-        run: ./mvnw deploy -Prelease --batch-mode -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}"
+        run: ./mvnw clean deploy -Prelease --batch-mode -Dgpg.passphrase="${{ secrets.GPG_PASSPHRASE }}"
         env:
           MAVEN_CENTRAL_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
           MAVEN_CENTRAL_PASSWORD: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
