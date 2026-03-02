@@ -3,8 +3,10 @@ package dev.linhvu.zalobot.client;
 import dev.linhvu.zalobot.client.http.ClientHttpRequestFactory;
 import dev.linhvu.zalobot.client.http.jdk.JdkClientHttpRequestFactory;
 import dev.linhvu.zalobot.client.http.okhhtp3.OkClientHttpRequestFactory;
+import dev.linhvu.zalobot.client.observation.ZaloBotClientObservationConvention;
 import dev.linhvu.zalobot.client.util.Assert;
 import dev.linhvu.zalobot.client.util.ClassUtils;
+import io.micrometer.observation.ObservationRegistry;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -13,6 +15,9 @@ import tools.jackson.databind.json.JsonMapper;
  * <p>Auto-detects the available HTTP client library at runtime with the following
  * fallback chain: OkHttp3 &rarr; JDK HttpClient (Java 11+). If neither is available,
  * an {@link IllegalStateException} is thrown at build time.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 final class DefaultZaloBotClientBuilder implements ZaloBotClient.Builder {
 
@@ -31,15 +36,28 @@ final class DefaultZaloBotClientBuilder implements ZaloBotClient.Builder {
 	private String botToken;
 	private ClientHttpRequestFactory requestFactory;
 	private JsonMapper jsonMapper;
+	private ObservationRegistry observationRegistry = ObservationRegistry.NOOP;
+	private ZaloBotClientObservationConvention observationConvention;
 
+	/**
+	 * Creates a new empty builder.
+	 */
 	public DefaultZaloBotClientBuilder() {
 	}
 
+	/**
+	 * Copy constructor that creates a new builder pre-populated with
+	 * the configuration from another builder instance.
+	 *
+	 * @param other the builder to copy configuration from
+	 */
 	public DefaultZaloBotClientBuilder(DefaultZaloBotClientBuilder other) {
 		this.url = other.url;
 		this.botToken = other.botToken;
 		this.requestFactory = other.requestFactory;
 		this.jsonMapper = other.jsonMapper;
+		this.observationRegistry = other.observationRegistry;
+		this.observationConvention = other.observationConvention;
 	}
 
 	@Override
@@ -67,6 +85,19 @@ final class DefaultZaloBotClientBuilder implements ZaloBotClient.Builder {
 	}
 
 	@Override
+	public ZaloBotClient.Builder observationRegistry(ObservationRegistry registry) {
+		Assert.notNull(registry, "'observationRegistry' must not be null");
+		this.observationRegistry = registry;
+		return this;
+	}
+
+	@Override
+	public ZaloBotClient.Builder observationConvention(ZaloBotClientObservationConvention convention) {
+		this.observationConvention = convention;
+		return this;
+	}
+
+	@Override
 	public ZaloBotClient build() {
 		Assert.notNull(this.botToken, "botToken must not be null");
 
@@ -74,12 +105,15 @@ final class DefaultZaloBotClientBuilder implements ZaloBotClient.Builder {
 		ClientHttpRequestFactory requestFactory = initRequestFactory();
 		JsonMapper jsonMapper = initJsonMapper();
 
-		return new DefaultZaloBotClient(
+		DefaultZaloBotClient zaloBotClient = new DefaultZaloBotClient(
 				url,
 				this.botToken,
 				requestFactory,
 				jsonMapper,
 				new DefaultZaloBotClientBuilder(this));
+		zaloBotClient.setObservationRegistry(this.observationRegistry);
+		zaloBotClient.setObservationConvention(this.observationConvention);
+		return zaloBotClient;
 	}
 
 	private ZaloBotUrl initUrl() {

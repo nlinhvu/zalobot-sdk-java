@@ -1,6 +1,7 @@
 package dev.linhvu.zalobot.client;
 
 import dev.linhvu.zalobot.client.http.ClientHttpRequestFactory;
+import dev.linhvu.zalobot.client.observation.ZaloBotClientObservationConvention;
 import dev.linhvu.zalobot.core.model.GetMe;
 import dev.linhvu.zalobot.core.model.GetMeResult;
 import dev.linhvu.zalobot.core.model.GetUpdates;
@@ -11,6 +12,8 @@ import dev.linhvu.zalobot.core.model.SendMessageResult;
 import dev.linhvu.zalobot.core.model.SendPhoto;
 import dev.linhvu.zalobot.core.model.SendSticker;
 import dev.linhvu.zalobot.core.model.ZaloApiResponse;
+import io.micrometer.observation.ObservationConvention;
+import io.micrometer.observation.ObservationRegistry;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
@@ -134,6 +137,9 @@ public interface ZaloBotClient {
 		 * @return this builder for chaining
 		 */
 		Builder jsonMapper(JsonMapper jsonMapper);
+
+		Builder observationRegistry(ObservationRegistry observationRegistry);
+		Builder observationConvention(ZaloBotClientObservationConvention observationConvention);
 
 		/**
 		 * Builds a new {@link ZaloBotClient} with the configured settings.

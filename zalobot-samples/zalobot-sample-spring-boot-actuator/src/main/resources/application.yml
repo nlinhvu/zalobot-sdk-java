@@ -1,0 +1,20 @@
+spring:
+  application:
+    name: zalobot-sample-spring-boot-actuator
+
+zalobot:
+  bot-token: ${ZALO_BOT_TOKEN}
+  listener:
+    poll-timeout: 30s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+logging:
+  level:
+    dev.linhvu.zalobot: TRACE
+
+

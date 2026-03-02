@@ -9,8 +9,8 @@
         <version>0.0.2</version>
     </parent>
 
-    <artifactId>zalobot-sample-spring-boot-echo-bot</artifactId>
-    <name>ZaloBot Sample: Spring Boot Echo Bot</name>
+    <artifactId>zalobot-sample-spring-boot-actuator</artifactId>
+    <name>ZaloBot Sample: Spring Boot Actuator</name>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
@@ -27,7 +27,11 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
         <dependency>
@@ -45,5 +49,4 @@
             </plugin>
         </plugins>
     </build>
-
 </project>

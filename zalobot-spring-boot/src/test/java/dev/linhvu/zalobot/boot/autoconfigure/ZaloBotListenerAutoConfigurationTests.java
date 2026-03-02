@@ -4,11 +4,14 @@ import dev.linhvu.zalobot.listener.ContainerProperties;
 import dev.linhvu.zalobot.listener.ErrorHandler;
 import dev.linhvu.zalobot.listener.UpdateListener;
 import dev.linhvu.zalobot.listener.UpdateListenerContainer;
+import dev.linhvu.zalobot.listener.observation.ZaloBotListenerObservationConvention;
+import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.Test;
 
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class ZaloBotListenerAutoConfigurationTests {
 
@@ -21,7 +24,7 @@ class ZaloBotListenerAutoConfigurationTests {
 	void whenListenerBeanPresent_thenContainerCreated() {
 		this.contextRunner
 				.withPropertyValues("zalobot.bot-token=test-token")
-				.withBean(UpdateListener.class, () -> update -> {})    // user's listener
+				.withBean(UpdateListener.class, () -> update -> {})
 				.run(context -> {
 					assertThat(context).hasSingleBean(UpdateListenerContainer.class);
 					assertThat(context).hasSingleBean(ZaloBotListenerContainerLifecycle.class);
@@ -33,7 +36,6 @@ class ZaloBotListenerAutoConfigurationTests {
 	void whenNoListenerBean_thenNoContainerCreated() {
 		this.contextRunner
 				.withPropertyValues("zalobot.bot-token=test-token")
-				// no UpdateListener bean
 				.run(context -> {
 					assertThat(context).doesNotHaveBean(UpdateListenerContainer.class);
 					assertThat(context).doesNotHaveBean(ZaloBotListenerContainerLifecycle.class);
@@ -87,6 +89,77 @@ class ZaloBotListenerAutoConfigurationTests {
 					assertThat(cp.getMaxBackOffInterval()).isEqualTo(java.time.Duration.ofSeconds(120));
 					assertThat(cp.getQueueCapacity()).isEqualTo(128);
 					assertThat(cp.getProcessingConcurrency()).isEqualTo(4);
+				});
+	}
+
+	@Test
+	void whenObservationRegistryPresent_thenSetOnContainerProperties() {
+		ObservationRegistry registry = mock(ObservationRegistry.class);
+
+		this.contextRunner
+				.withPropertyValues("zalobot.bot-token=test-token")
+				.withBean(UpdateListener.class, () -> update -> {})
+				.withBean(ObservationRegistry.class, () -> registry)
+				.run(context -> {
+					ContainerProperties cp = context.getBean(ContainerProperties.class);
+					assertThat(cp.getObservationRegistry()).isSameAs(registry);
+				});
+	}
+
+	@Test
+	void whenObservationDisabled_thenRegistryNotSet() {
+		ObservationRegistry registry = mock(ObservationRegistry.class);
+
+		this.contextRunner
+				.withPropertyValues(
+						"zalobot.bot-token=test-token",
+						"zalobot.listener.observation-enabled=false")
+				.withBean(UpdateListener.class, () -> update -> {})
+				.withBean(ObservationRegistry.class, () -> registry)
+				.run(context -> {
+					ContainerProperties cp = context.getBean(ContainerProperties.class);
+					assertThat(cp.getObservationRegistry()).isSameAs(ObservationRegistry.NOOP);
+				});
+	}
+
+	@Test
+	void whenCustomObservationConventionPresent_thenSetOnContainerProperties() {
+		ZaloBotListenerObservationConvention convention =
+				mock(ZaloBotListenerObservationConvention.class);
+
+		this.contextRunner
+				.withPropertyValues("zalobot.bot-token=test-token")
+				.withBean(UpdateListener.class, () -> update -> {})
+				.withBean(ZaloBotListenerObservationConvention.class, () -> convention)
+				.run(context -> {
+					ContainerProperties cp = context.getBean(ContainerProperties.class);
+					assertThat(cp.getObservationConvention()).isSameAs(convention);
+				});
+	}
+
+	@Test
+	void whenNoBotToken_thenNoContainerCreated() {
+		this.contextRunner
+				.withBean(UpdateListener.class, () -> update -> {})
+				.run(context -> {
+					assertThat(context).doesNotHaveBean(UpdateListenerContainer.class);
+					assertThat(context).doesNotHaveBean(ContainerProperties.class);
+				});
+	}
+
+	@Test
+	void containerProperties_defaultValues() {
+		this.contextRunner
+				.withPropertyValues("zalobot.bot-token=test-token")
+				.withBean(UpdateListener.class, () -> update -> {})
+				.run(context -> {
+					ContainerProperties cp = context.getBean(ContainerProperties.class);
+					assertThat(cp.getPollTimeout()).isEqualTo(java.time.Duration.ofSeconds(30));
+					assertThat(cp.getShutdownTimeout()).isEqualTo(java.time.Duration.ofSeconds(10));
+					assertThat(cp.getBackOffInterval()).isEqualTo(java.time.Duration.ofSeconds(1));
+					assertThat(cp.getMaxBackOffInterval()).isEqualTo(java.time.Duration.ofSeconds(30));
+					assertThat(cp.getQueueCapacity()).isEqualTo(64);
+					assertThat(cp.getProcessingConcurrency()).isEqualTo(1);
 				});
 	}
 }

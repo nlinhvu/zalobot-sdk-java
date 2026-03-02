@@ -2,9 +2,12 @@ package dev.linhvu.zalobot.listener;
 
 import java.time.Duration;
 
+import dev.linhvu.zalobot.listener.observation.ZaloBotListenerObservationConvention;
+import io.micrometer.observation.ObservationRegistry;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.mock;
 
 class ContainerPropertiesTests {
 
@@ -65,5 +68,57 @@ class ContainerPropertiesTests {
 	void defaultErrorHandler_isNull() {
 		ContainerProperties props = new ContainerProperties();
 		assertThat(props.getErrorHandler()).isNull();
+	}
+
+	@Test
+	void updateListener_setAndGet() {
+		ContainerProperties props = new ContainerProperties();
+		UpdateListener listener = update -> {};
+		props.setUpdateListener(listener);
+		assertThat(props.getUpdateListener()).isSameAs(listener);
+	}
+
+	@Test
+	void errorHandler_setAndGet() {
+		ContainerProperties props = new ContainerProperties();
+		ErrorHandler handler = (exception, container) -> {};
+		props.setErrorHandler(handler);
+		assertThat(props.getErrorHandler()).isSameAs(handler);
+	}
+
+	@Test
+	void defaultObservationRegistry_isNoop() {
+		ContainerProperties props = new ContainerProperties();
+		assertThat(props.getObservationRegistry()).isSameAs(ObservationRegistry.NOOP);
+	}
+
+	@Test
+	void setObservationRegistry_withNonNull() {
+		ContainerProperties props = new ContainerProperties();
+		ObservationRegistry registry = mock(ObservationRegistry.class);
+		props.setObservationRegistry(registry);
+		assertThat(props.getObservationRegistry()).isSameAs(registry);
+	}
+
+	@Test
+	void setObservationRegistry_withNull_throwsException() {
+		ContainerProperties props = new ContainerProperties();
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> props.setObservationRegistry(null));
+	}
+
+	@Test
+	void defaultObservationConvention_isNull() {
+		ContainerProperties props = new ContainerProperties();
+		assertThat(props.getObservationConvention()).isNull();
+	}
+
+	@Test
+	void setObservationConvention_setAndGet() {
+		ContainerProperties props = new ContainerProperties();
+		ZaloBotListenerObservationConvention convention =
+				mock(ZaloBotListenerObservationConvention.class);
+		props.setObservationConvention(convention);
+		assertThat(props.getObservationConvention()).isSameAs(convention);
 	}
 }

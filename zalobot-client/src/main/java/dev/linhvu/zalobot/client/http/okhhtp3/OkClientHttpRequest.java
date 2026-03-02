@@ -29,6 +29,9 @@ import okhttp3.Response;
  * <p>Sends requests asynchronously using OkHttp's callback mechanism and
  * bridges the result back to the synchronous {@link #execute()} contract
  * via a {@link CompletableFuture}.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 class OkClientHttpRequest implements ClientHttpRequest {
 
@@ -38,6 +41,13 @@ class OkClientHttpRequest implements ClientHttpRequest {
 	private final Map<String, String> headers = new LinkedHashMap<>();
 	private final ByteArrayOutputStream body = new ByteArrayOutputStream(1024);
 
+	/**
+	 * Creates a new OkHttp-backed HTTP request.
+	 *
+	 * @param httpClient the OkHttp client to use for sending
+	 * @param uri the request URI
+	 * @param method the HTTP method
+	 */
 	OkClientHttpRequest(OkHttpClient httpClient, URI uri, HttpMethod method) {
 		this.httpClient = httpClient;
 		this.method = method;

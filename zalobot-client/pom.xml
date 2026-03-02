@@ -6,7 +6,7 @@
     <parent>
         <groupId>dev.linhvu</groupId>
         <artifactId>zalobot-sdk-java</artifactId>
-        <version>0.0.1</version>
+        <version>0.0.2</version>
     </parent>
 
     <artifactId>zalobot-client</artifactId>
@@ -31,6 +31,19 @@
             <artifactId>okhttp</artifactId>
             <version>${okhttp.version}</version>
             <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-observation</artifactId>
+            <version>${micrometer.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-observation-test</artifactId>
+            <version>${micrometer.version}</version>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

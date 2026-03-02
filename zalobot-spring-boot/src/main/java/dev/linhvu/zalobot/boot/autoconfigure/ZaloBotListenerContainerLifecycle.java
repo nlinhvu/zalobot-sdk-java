@@ -11,11 +11,19 @@ import org.springframework.context.SmartLifecycle;
  * <p>Configured to auto-start ({@link #isAutoStartup()} returns {@code true})
  * and runs at a late phase ({@code Integer.MAX_VALUE - 100}) to ensure the
  * listener starts after all other beans are initialized.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 class ZaloBotListenerContainerLifecycle implements SmartLifecycle {
 
 	private final UpdateListenerContainer container;
 
+	/**
+	 * Creates a new lifecycle adapter for the given container.
+	 *
+	 * @param container the update listener container to manage
+	 */
 	ZaloBotListenerContainerLifecycle(UpdateListenerContainer container) {
 		this.container = container;
 	}

@@ -6,7 +6,7 @@
     <parent>
         <groupId>dev.linhvu</groupId>
         <artifactId>zalobot-sdk-java</artifactId>
-        <version>0.0.1</version>
+        <version>0.0.2</version>
     </parent>
 
     <artifactId>zalobot-samples</artifactId>
@@ -14,6 +14,7 @@
     <name>ZaloBot SDK Samples</name>
     <modules>
         <module>zalobot-sample-spring-boot-echo-bot</module>
+        <module>zalobot-sample-spring-boot-actuator</module>
     </modules>
 
     <properties>
@@ -21,6 +22,7 @@
         <maven.install.skip>true</maven.install.skip>
         <jacoco.skip>true</jacoco.skip>
         <maven.javadoc.skip>true</maven.javadoc.skip>
+        <maven.source.skip>true</maven.source.skip>
         <gpg.skip>true</gpg.skip>
     </properties>
 

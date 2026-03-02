@@ -20,6 +20,11 @@ import dev.linhvu.zalobot.client.exception.ZaloBotRequestTimeoutException;
 import dev.linhvu.zalobot.core.model.GetUpdates;
 import dev.linhvu.zalobot.core.model.GetUpdatesResult;
 import dev.linhvu.zalobot.core.model.ZaloApiResponse;
+import dev.linhvu.zalobot.listener.observation.ZaloBotListenerContext;
+import dev.linhvu.zalobot.listener.observation.ZaloBotListenerObservation;
+import dev.linhvu.zalobot.listener.observation.ZaloBotListenerObservationConvention;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,9 +47,9 @@ import org.slf4j.LoggerFactory;
  * @see ContainerProperties#getProcessingConcurrency()
  * @see ContainerProperties#getQueueCapacity()
  */
-public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer {
+public class ZaloBotUpdateListenerContainer extends AbstractUpdateListenerContainer {
 
-	private static final Logger logger = LoggerFactory.getLogger(ZaloUpdateListenerContainer.class);
+	private static final Logger logger = LoggerFactory.getLogger(ZaloBotUpdateListenerContainer.class);
 
 	private final ZaloBotClient client;
 
@@ -55,7 +60,7 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 	private CompletableFuture<Void> pollingFuture;
 	private List<CompletableFuture<Void>> processingFutures;
 
-	public ZaloUpdateListenerContainer(ZaloBotClient client, ContainerProperties containerProperties) {
+	public ZaloBotUpdateListenerContainer(ZaloBotClient client, ContainerProperties containerProperties) {
 		super(containerProperties);
 		if (client == null) {
 			throw new IllegalArgumentException("'client' cannot be null");
@@ -67,6 +72,8 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 	protected void doStart() {
 		ContainerProperties properties = getContainerProperties();
 		UpdateListener listener = properties.getUpdateListener();
+		ObservationRegistry observationRegistry = properties.getObservationRegistry();
+		ZaloBotListenerObservationConvention observationConvention = properties.getObservationConvention();
 		ErrorHandler errorHandler = properties.getErrorHandler();
 		if (errorHandler == null) {
 			errorHandler = new LoggingErrorHandler();
@@ -97,7 +104,7 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 			return t;
 		});
 		this.processingFutures = new ArrayList<>();
-		ProcessingLoop processingLoop = new ProcessingLoop(this.updateQueue, listener, errorHandler);
+		ProcessingLoop processingLoop = new ProcessingLoop(this.updateQueue, listener, errorHandler, observationRegistry, observationConvention);
 		for (int i = 0; i < concurrency; i++) {
 			this.processingFutures.add(CompletableFuture.runAsync(processingLoop, this.processingExecutor));
 		}
@@ -174,7 +181,7 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 					properties.getBackOffInterval(),
 					properties.getMaxBackOffInterval());
 
-			ZaloUpdateListenerContainer.this.startLatch.countDown();
+			ZaloBotUpdateListenerContainer.this.startLatch.countDown();
 			while (isRunning()) {
 				try {
 					if (isPauseRequested()) {
@@ -183,7 +190,7 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 					}
 
 					logger.debug("Start calling /getUpdates for long-polling new message.");
-					ZaloApiResponse<GetUpdatesResult> response = ZaloUpdateListenerContainer.this.client
+					ZaloApiResponse<GetUpdatesResult> response = ZaloBotUpdateListenerContainer.this.client
 							.getUpdates()
 							.body(new GetUpdates(pollTimeout.toSeconds()))
 							.retrieve()
@@ -205,7 +212,7 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 						continue;
 					}
 
-					errorHandler.handleError(e, ZaloUpdateListenerContainer.this);
+					errorHandler.handleError(e, ZaloBotUpdateListenerContainer.this);
 					try {
 						TimeUnit.MILLISECONDS.sleep(backOff.nextBackOffMillis());
 					} catch (InterruptedException ie) {
@@ -234,11 +241,19 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 		private final BlockingQueue<GetUpdatesResult> queue;
 		private final UpdateListener listener;
 		private final ErrorHandler errorHandler;
+		private final ObservationRegistry observationRegistry;
+		private final ZaloBotListenerObservationConvention observationConvention;
 
-		private ProcessingLoop(BlockingQueue<GetUpdatesResult> queue, UpdateListener listener, ErrorHandler errorHandler) {
+		private ProcessingLoop(BlockingQueue<GetUpdatesResult> queue,
+				UpdateListener listener,
+				ErrorHandler errorHandler,
+				ObservationRegistry observationRegistry,
+				ZaloBotListenerObservationConvention observationConvention) {
 			this.queue = queue;
 			this.listener = listener;
 			this.errorHandler = errorHandler;
+			this.observationRegistry = observationRegistry;
+			this.observationConvention = observationConvention;
 		}
 
 		@Override
@@ -247,7 +262,7 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 				try {
 					GetUpdatesResult update = queue.poll(1, TimeUnit.SECONDS);
 					if (update != null) {
-						listener.onUpdate(update);
+						processUpdate(update);
 					}
 				}
 				catch (InterruptedException e) {
@@ -255,8 +270,29 @@ public class ZaloUpdateListenerContainer extends AbstractUpdateListenerContainer
 					break;
 				}
 				catch (Exception e) {
-					errorHandler.handleError(e, ZaloUpdateListenerContainer.this);
+					errorHandler.handleError(e, ZaloBotUpdateListenerContainer.this);
 				}
+			}
+		}
+
+		private void processUpdate(GetUpdatesResult update) {
+			ZaloBotListenerContext observationContext = new ZaloBotListenerContext("default", update);
+			Observation observation = ZaloBotListenerObservation.LISTENER_OBSERVATION
+					.observation(
+							this.observationConvention,
+							ZaloBotListenerObservation.DefaultZaloBotListenerObservationConvention.INSTANCE,
+							() -> observationContext,
+							this.observationRegistry);
+			observation.start();
+			try (Observation.Scope scope = observation.openScope()) {
+				this.listener.onUpdate(update);
+			}
+			catch (Exception e) {
+				observation.error(e);
+				this.errorHandler.handleError(e, ZaloBotUpdateListenerContainer.this);
+			}
+			finally {
+				observation.stop();
 			}
 		}
 	}

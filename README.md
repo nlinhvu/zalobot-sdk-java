@@ -27,7 +27,7 @@ Java SDK for the [Zalo Bot API](https://bot-api.zaloplatforms.com) — client, l
 <dependency>
     <groupId>dev.linhvu</groupId>
     <artifactId>zalobot-spring-boot-starter</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 
@@ -37,7 +37,7 @@ Java SDK for the [Zalo Bot API](https://bot-api.zaloplatforms.com) — client, l
 <dependency>
     <groupId>dev.linhvu</groupId>
     <artifactId>zalobot-client</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 
@@ -47,7 +47,7 @@ Java SDK for the [Zalo Bot API](https://bot-api.zaloplatforms.com) — client, l
 <dependency>
     <groupId>dev.linhvu</groupId>
     <artifactId>zalobot-listener</artifactId>
-    <version>0.0.1</version>
+    <version>0.0.2</version>
 </dependency>
 ```
 

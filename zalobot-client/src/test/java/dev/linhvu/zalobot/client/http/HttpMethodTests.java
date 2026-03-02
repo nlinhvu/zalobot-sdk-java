@@ -21,8 +21,13 @@ class HttpMethodTests {
 	@Test
 	void valueOf_returnsSameInstanceForKnownMethods() {
 		assertThat(HttpMethod.valueOf("GET")).isSameAs(HttpMethod.GET);
+		assertThat(HttpMethod.valueOf("HEAD")).isSameAs(HttpMethod.HEAD);
 		assertThat(HttpMethod.valueOf("POST")).isSameAs(HttpMethod.POST);
+		assertThat(HttpMethod.valueOf("PUT")).isSameAs(HttpMethod.PUT);
+		assertThat(HttpMethod.valueOf("PATCH")).isSameAs(HttpMethod.PATCH);
 		assertThat(HttpMethod.valueOf("DELETE")).isSameAs(HttpMethod.DELETE);
+		assertThat(HttpMethod.valueOf("OPTIONS")).isSameAs(HttpMethod.OPTIONS);
+		assertThat(HttpMethod.valueOf("TRACE")).isSameAs(HttpMethod.TRACE);
 	}
 
 	@Test

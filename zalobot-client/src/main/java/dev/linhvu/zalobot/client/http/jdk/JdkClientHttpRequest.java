@@ -29,6 +29,9 @@ import dev.linhvu.zalobot.client.http.HttpMethod;
  *
  * <p>Sends requests asynchronously and supports configurable read timeouts
  * via an internal {@code TimeoutHandler}.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 class JdkClientHttpRequest implements ClientHttpRequest {
 
@@ -39,6 +42,14 @@ class JdkClientHttpRequest implements ClientHttpRequest {
 	private ByteArrayOutputStream body = new ByteArrayOutputStream(1024);
 	private final Duration readTimeout;
 
+	/**
+	 * Creates a new JDK-backed HTTP request.
+	 *
+	 * @param httpClient the JDK HTTP client to use for sending
+	 * @param uri the request URI
+	 * @param method the HTTP method
+	 * @param readTimeout the read timeout duration, or {@code null} for no timeout
+	 */
 	JdkClientHttpRequest(HttpClient httpClient, URI uri, HttpMethod method, Duration readTimeout) {
 		this.httpClient = httpClient;
 		this.uri = uri;

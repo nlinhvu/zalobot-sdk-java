@@ -313,6 +313,117 @@ class DefaultZaloBotClientTests {
 		assertThat(bodyJson).contains("\"text\":\"Hello World\"");
 	}
 
+	// ── Error mapping tests ───────────────────────────────────────────
+
+	@Test
+	void retrieve_call_throwsApiExceptionOnGenericApiError() throws Exception {
+		String json = """
+				{"ok":false,"result":null,"error_code":400}""";
+		MockTransport transport = mockTransport(json, 400);
+		ZaloBotClient client = buildClient("token", transport.factory());
+
+		assertThatThrownBy(() -> client.getMe().retrieve().call(GetMeResult.class))
+				.isInstanceOf(ZaloBotApiException.class)
+				.satisfies(ex -> {
+					ZaloBotApiException apiEx = (ZaloBotApiException) ex;
+					assertThat(apiEx.getRawErrorCode()).isEqualTo(400);
+					assertThat(apiEx.getErrorCode()).isEqualTo(ZaloErrorCode.BAD_REQUEST);
+				});
+	}
+
+	@Test
+	void retrieve_call_throwsRequestTimeoutExceptionOn408() throws Exception {
+		String json = """
+				{"ok":false,"result":null,"error_code":408}""";
+		MockTransport transport = mockTransport(json, 200);
+		ZaloBotClient client = buildClient("token", transport.factory());
+
+		assertThatThrownBy(() -> client.getMe().retrieve().call(GetMeResult.class))
+				.isInstanceOf(dev.linhvu.zalobot.client.exception.ZaloBotRequestTimeoutException.class);
+	}
+
+	@Test
+	void exchange_serializationErrorOnBody_throwsZaloBotSerializationException() throws Exception {
+		ClientHttpRequestFactory factory = mock(ClientHttpRequestFactory.class);
+		ClientHttpRequest request = mock(ClientHttpRequest.class);
+		Map<String, String> headers = new LinkedHashMap<>();
+
+		given(factory.createRequest(any(URI.class), any(HttpMethod.class))).willReturn(request);
+		given(request.getHeaders()).willReturn(headers);
+		// Return an OutputStream that throws on write
+		given(request.getBody()).willReturn(new java.io.OutputStream() {
+			@Override
+			public void write(int b) throws IOException {
+				throw new IOException("disk full");
+			}
+		});
+
+		ZaloBotClient client = buildClient("token", factory);
+
+		assertThatThrownBy(() -> client.sendMessage()
+				.body(new SendMessage("chat", "msg"))
+				.retrieve()
+				.call(SendMessageResult.class))
+				.isInstanceOf(dev.linhvu.zalobot.client.exception.ZaloBotSerializationException.class)
+				.hasMessageContaining("serialize");
+	}
+
+	@Test
+	void retrieve_call_nullApiResponse_returnsNull() throws Exception {
+		// When the API returns a JSON "null"
+		String json = "null";
+		MockTransport transport = mockTransport(json);
+		ZaloBotClient client = buildClient("token", transport.factory());
+
+		ZaloApiResponse<GetMeResult> response = client.getMe().retrieve().call(GetMeResult.class);
+		assertThat(response).isNull();
+	}
+
+	// ── Builder observation tests ──────────────────────────────────────
+
+	@Test
+	void builder_withNullObservationRegistry_throwsIllegalArgumentException() {
+		assertThatIllegalArgumentException()
+				.isThrownBy(() -> ZaloBotClient.builder()
+						.botToken("token")
+						.observationRegistry(null)
+						.build())
+				.withMessage("'observationRegistry' must not be null");
+	}
+
+	@Test
+	void builder_withObservationRegistryAndConvention_buildsSuccessfully() throws Exception {
+		String json = """
+				{"ok":true,"result":null,"error_code":0}""";
+		MockTransport transport = mockTransport(json);
+
+		ZaloBotClient client = ZaloBotClient.builder()
+				.botToken("token")
+				.requestFactory(transport.factory())
+				.observationRegistry(io.micrometer.observation.ObservationRegistry.NOOP)
+				.observationConvention(null)
+				.build();
+
+		assertThat(client).isNotNull();
+		client.getMe().retrieve().call(GetMeResult.class);
+	}
+
+	@Test
+	void builder_withJsonMapper_usesCustomMapper() throws Exception {
+		String json = """
+				{"ok":true,"result":null,"error_code":0}""";
+		MockTransport transport = mockTransport(json);
+
+		ZaloBotClient client = ZaloBotClient.builder()
+				.botToken("token")
+				.requestFactory(transport.factory())
+				.jsonMapper(tools.jackson.databind.json.JsonMapper.builder().build())
+				.build();
+
+		assertThat(client).isNotNull();
+		client.getMe().retrieve().call(GetMeResult.class);
+	}
+
 	// ── mutate() test ──────────────────────────────────────────────────
 
 	@Test
@@ -330,5 +441,32 @@ class DefaultZaloBotClientTests {
 		ZaloBotClient newClient = builder.build();
 		assertThat(newClient).isNotNull();
 		assertThat(newClient).isNotSameAs(client);
+	}
+
+	@Test
+	void mutate_preservesObservationConfiguration() throws Exception {
+		String json = """
+				{"ok":true,"result":null,"error_code":0}""";
+		MockTransport transport = mockTransport(json);
+
+		ZaloBotClient client = ZaloBotClient.builder()
+				.botToken("token")
+				.requestFactory(transport.factory())
+				.zaloBotUrl(new ZaloBotUrl("http", "localhost", 9090))
+				.observationRegistry(io.micrometer.observation.ObservationRegistry.NOOP)
+				.build();
+
+		DefaultZaloBotClient defaultClient = (DefaultZaloBotClient) client;
+		ZaloBotClient newClient = defaultClient.mutate().build();
+		assertThat(newClient).isNotNull();
+
+		// Verify the mutated client can still make requests
+		MockTransport transport2 = mockTransport(json);
+		ZaloBotClient client2 = defaultClient.mutate()
+				.requestFactory(transport2.factory())
+				.build();
+		client2.getMe().retrieve().call(GetMeResult.class);
+
+		verify(transport2.factory()).createRequest(any(URI.class), any(HttpMethod.class));
 	}
 }

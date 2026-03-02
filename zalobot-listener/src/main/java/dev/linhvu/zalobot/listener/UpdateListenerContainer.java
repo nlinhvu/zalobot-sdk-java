@@ -9,7 +9,7 @@ package dev.linhvu.zalobot.listener;
  *
  * @author Linh Vu
  * @since 0.0.1
- * @see ZaloUpdateListenerContainer
+ * @see ZaloBotUpdateListenerContainer
  */
 public interface UpdateListenerContainer extends AutoCloseable {
 

@@ -172,6 +172,13 @@ public class ZaloBotProperties {
 		private int processingConcurrency = 1;
 
 		/**
+		 * Whether to enable observation for the listener container.
+		 * When {@code true} and an {@link io.micrometer.observation.ObservationRegistry}
+		 * bean is available, observations will be recorded for each processed update.
+		 */
+		private boolean observationEnabled = true;
+
+		/**
 		 * Returns whether the listener container is enabled.
 		 * @return {@code true} if enabled
 		 */
@@ -281,6 +288,22 @@ public class ZaloBotProperties {
 		 */
 		public void setProcessingConcurrency(int processingConcurrency) {
 			this.processingConcurrency = processingConcurrency;
+		}
+
+		/**
+		 * Returns whether observation is enabled for the listener container.
+		 * @return {@code true} if observation is enabled
+		 */
+		public boolean isObservationEnabled() {
+			return this.observationEnabled;
+		}
+
+		/**
+		 * Sets whether observation is enabled for the listener container.
+		 * @param observationEnabled {@code true} to enable observation
+		 */
+		public void setObservationEnabled(boolean observationEnabled) {
+			this.observationEnabled = observationEnabled;
 		}
 	}
 }

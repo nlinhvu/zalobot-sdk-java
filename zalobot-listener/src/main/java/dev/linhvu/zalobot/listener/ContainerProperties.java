@@ -2,6 +2,10 @@ package dev.linhvu.zalobot.listener;
 
 import java.time.Duration;
 
+import dev.linhvu.zalobot.client.util.Assert;
+import dev.linhvu.zalobot.listener.observation.ZaloBotListenerObservationConvention;
+import io.micrometer.observation.ObservationRegistry;
+
 /**
  * Configuration properties for an {@link UpdateListenerContainer}.
  *
@@ -36,6 +40,8 @@ public class ContainerProperties {
 	private int processingConcurrency = 1;
 	private UpdateListener updateListener;
 	private ErrorHandler errorHandler;
+	private ObservationRegistry observationRegistry = ObservationRegistry.NOOP;
+	private ZaloBotListenerObservationConvention observationConvention;
 
 	/**
 	 * Returns the long-polling timeout for the {@code getUpdates} API call.
@@ -175,5 +181,23 @@ public class ContainerProperties {
 	 */
 	public void setErrorHandler(ErrorHandler errorHandler) {
 		this.errorHandler = errorHandler;
+	}
+
+	public ObservationRegistry getObservationRegistry() {
+		return this.observationRegistry;
+	}
+
+	public void setObservationRegistry(ObservationRegistry observationRegistry) {
+		Assert.notNull(observationRegistry, "'observationRegistry' must not be null");
+		this.observationRegistry = observationRegistry;
+	}
+
+	public ZaloBotListenerObservationConvention getObservationConvention() {
+		return this.observationConvention;
+	}
+
+	public void setObservationConvention(
+			ZaloBotListenerObservationConvention observationConvention) {
+		this.observationConvention = observationConvention;
 	}
 }

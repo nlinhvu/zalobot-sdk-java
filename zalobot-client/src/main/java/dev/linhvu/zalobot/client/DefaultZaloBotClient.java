@@ -18,6 +18,10 @@ import dev.linhvu.zalobot.client.http.ClientHttpRequest;
 import dev.linhvu.zalobot.client.http.ClientHttpRequestFactory;
 import dev.linhvu.zalobot.client.http.ClientHttpResponse;
 import dev.linhvu.zalobot.client.http.HttpMethod;
+import dev.linhvu.zalobot.client.observation.ZaloBotClientContext;
+import dev.linhvu.zalobot.client.observation.ZaloBotClientObservation;
+import dev.linhvu.zalobot.client.observation.ZaloBotClientObservationConvention;
+import dev.linhvu.zalobot.client.util.Assert;
 import dev.linhvu.zalobot.core.model.GetMe;
 import dev.linhvu.zalobot.core.model.GetMeResult;
 import dev.linhvu.zalobot.core.model.GetUpdates;
@@ -28,6 +32,8 @@ import dev.linhvu.zalobot.core.model.SendMessageResult;
 import dev.linhvu.zalobot.core.model.SendPhoto;
 import dev.linhvu.zalobot.core.model.SendSticker;
 import dev.linhvu.zalobot.core.model.ZaloApiResponse;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import tools.jackson.databind.JavaType;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -39,6 +45,9 @@ import tools.jackson.databind.json.JsonMapper;
  * nested spec classes.
  *
  * <p>Instances are created via {@link ZaloBotClient#builder()}.
+ *
+ * @author Linh Vu
+ * @since 0.0.1
  */
 final class DefaultZaloBotClient implements ZaloBotClient {
 
@@ -48,6 +57,18 @@ final class DefaultZaloBotClient implements ZaloBotClient {
 	private final JsonMapper jsonMapper;
 	private final DefaultZaloBotClientBuilder builder;
 
+	private ObservationRegistry observationRegistry = ObservationRegistry.NOOP;
+	private ZaloBotClientObservationConvention observationConvention;
+
+	/**
+	 * Creates a new client with the given configuration.
+	 *
+	 * @param url the Zalo Bot API base URL
+	 * @param botToken the bot authentication token
+	 * @param clientHttpRequestFactory the factory for creating HTTP requests
+	 * @param jsonMapper the JSON mapper for serialization/deserialization
+	 * @param builder the builder that created this client (retained for {@link #mutate()})
+	 */
 	public DefaultZaloBotClient(ZaloBotUrl url,
 			String botToken,
 			ClientHttpRequestFactory clientHttpRequestFactory,
@@ -58,6 +79,26 @@ final class DefaultZaloBotClient implements ZaloBotClient {
 		this.clientHttpRequestFactory = clientHttpRequestFactory;
 		this.jsonMapper = jsonMapper;
 		this.builder = builder;
+	}
+
+	/**
+	 * Sets the {@link ObservationRegistry} for recording API request observations.
+	 *
+	 * @param observationRegistry the observation registry, must not be {@code null}
+	 */
+	public void setObservationRegistry(ObservationRegistry observationRegistry) {
+		Assert.notNull(observationRegistry, "'observationRegistry' must not be null");
+		this.observationRegistry = observationRegistry;
+	}
+
+	/**
+	 * Sets a custom {@link ZaloBotClientObservationConvention} to override the
+	 * default observation naming and key values.
+	 *
+	 * @param convention the custom observation convention, or {@code null} to use the default
+	 */
+	public void setObservationConvention(ZaloBotClientObservationConvention convention) {
+		this.observationConvention = convention;
 	}
 
 	/** Returns a new builder pre-populated with this client's configuration. */
@@ -116,47 +157,68 @@ final class DefaultZaloBotClient implements ZaloBotClient {
 	/** Executes an HTTP request and deserializes the API response, mapping errors to exceptions. */
 	private <N> ZaloApiResponse<N> exchangeInternal(HttpMethod method, String methodPath, Map<String, String> headers, Object body, Class<N> clazz) {
 
-		URI uri = buildUri(methodPath);
+		ZaloBotClientContext observationContext = new ZaloBotClientContext(methodPath, method);
+		Observation observation = ZaloBotClientObservation.API_REQUEST.observation(
+				this.observationConvention,
+				ZaloBotClientObservation.DefaultZaloBotClientObservationConvention.INSTANCE,
+				() -> observationContext,
+				this.observationRegistry);
+		observation.start();
 
-		ClientHttpRequest request = this.clientHttpRequestFactory.createRequest(uri, method);
+		try (Observation.Scope scope = observation.openScope()) {
+			URI uri = buildUri(methodPath);
+			ClientHttpRequest request = this.clientHttpRequestFactory.createRequest(uri, method);
 
-		Map<String, String> requestHeaders = request.getHeaders();
-		requestHeaders.putAll(headers);
+			// Set carrier for trace propagation (enables header injection)
+			observationContext.setCarrier(request);
 
-		if (body != null) {
-			try {
-				byte[] bodyBytes = this.jsonMapper.writeValueAsBytes(body);
-				OutputStream outputStream = request.getBody();
-				outputStream.write(bodyBytes);
-				outputStream.flush();
-			}
-			catch (IOException e) {
-				throw new ZaloBotSerializationException("Failed to serialize request body", e);
-			}
-		}
+			Map<String, String> requestHeaders = request.getHeaders();
+			requestHeaders.putAll(headers);
 
-		try (ClientHttpResponse response = request.execute()) {
-			int httpStatus = response.getStatusCode();
-			JavaType javaType = this.jsonMapper.getTypeFactory().constructParametricType(ZaloApiResponse.class, clazz);
-			ZaloApiResponse<N> apiResponse = this.jsonMapper.readValue(response.getBody(), javaType);
-			if (apiResponse != null && !apiResponse.ok()) {
-				ZaloErrorCode code = ZaloErrorCode.fromCode(apiResponse.errorCode());
-				String description = code.getDescription();
-				if (code.isAuthenticationError()) {
-					throw new ZaloBotAuthenticationException(httpStatus, apiResponse.errorCode(), description);
+			if (body != null) {
+				try {
+					byte[] bodyBytes = this.jsonMapper.writeValueAsBytes(body);
+					OutputStream outputStream = request.getBody();
+					outputStream.write(bodyBytes);
+					outputStream.flush();
 				}
-				if (code.isRequestTimeout()) {
-					throw new ZaloBotRequestTimeoutException(httpStatus, apiResponse.errorCode(), description);
+				catch (IOException e) {
+					throw new ZaloBotSerializationException("Failed to serialize request body", e);
 				}
-				throw new ZaloBotApiException(httpStatus, apiResponse.errorCode(), description);
 			}
-			return apiResponse;
+
+			try (ClientHttpResponse response = request.execute()) {
+				observationContext.setResponse(response);
+
+				int httpStatus = response.getStatusCode();
+				JavaType javaType = this.jsonMapper.getTypeFactory().constructParametricType(ZaloApiResponse.class, clazz);
+				ZaloApiResponse<N> apiResponse = this.jsonMapper.readValue(response.getBody(), javaType);
+				if (apiResponse != null && !apiResponse.ok()) {
+					ZaloErrorCode code = ZaloErrorCode.fromCode(apiResponse.errorCode());
+					String description = code.getDescription();
+					if (code.isAuthenticationError()) {
+						throw new ZaloBotAuthenticationException(httpStatus, apiResponse.errorCode(), description);
+					}
+					if (code.isRequestTimeout()) {
+						throw new ZaloBotRequestTimeoutException(httpStatus, apiResponse.errorCode(), description);
+					}
+					throw new ZaloBotApiException(httpStatus, apiResponse.errorCode(), description);
+				}
+				return apiResponse;
+			}
 		}
 		catch (ZaloBotException e) {
+			observationContext.setSuccess(false);
+			observation.error(e);
 			throw e;
 		}
 		catch (IOException e) {
+			observationContext.setSuccess(false);
+			observation.error(e);
 			throw new ZaloBotClientException("HTTP request failed: " + e.getMessage(), e);
+		}
+		finally {
+			observation.stop();
 		}
 	}
 
